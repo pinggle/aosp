@@ -966,10 +966,12 @@ int main(int argc, char** argv) {
         boot_clock::time_point start_time = boot_clock::now();
 
         // Clear the umask.
+        // 清理 umask; 测试
         umask(0);
 
         // Get the basic filesystem setup we need put together in the initramdisk
         // on / and then we'll let the rc file figure out the rest.
+        // 创建和挂载启动所需的文件目录;
         mount("tmpfs", "/dev", "tmpfs", MS_NOSUID, "mode=0755");
         mkdir("/dev/pts", 0755);
         mkdir("/dev/socket", 0755);
