@@ -1039,6 +1039,7 @@ int main(int argc, char** argv) {
     // Indicate that booting is in progress to background fw loaders, etc.
     close(open("/dev/.booting", O_WRONLY | O_CREAT | O_CLOEXEC, 0000));
 
+    // 对属性服务进行初始化;
     property_init();
 
     // If arguments are passed both on the command line and in DT,
@@ -1068,16 +1069,22 @@ int main(int argc, char** argv) {
     selinux_initialize(false);
     selinux_restore_context();
 
+    // 创建epoll句柄;
     epoll_fd = epoll_create1(EPOLL_CLOEXEC);
     if (epoll_fd == -1) {
         PLOG(ERROR) << "epoll_create1 failed";
         exit(1);
     }
 
+    // 用于设置子进程信号处理函数,如果子进程(zygote进程)异常退出,
+    // init进程会调用该函数中设定的信号处理函数来进行处理;
     signal_handler_init();
 
+    // 导入默认的环境变量;
     property_load_boot_defaults();
     export_oem_lock_status();
+
+    // 启动属性服务;
     start_property_service();
     set_usb_controller();
 
@@ -1090,6 +1097,7 @@ int main(int argc, char** argv) {
     parser.AddSectionParser("import", std::make_unique<ImportParser>());
     std::string bootscript = GetProperty("ro.boot.init_rc", "");
     if (bootscript.empty()) {
+        // 解析 init.rc 配置文件;(解析init.rc的文件为system/core/init/init_parse.cpp文件)
         parser.ParseConfig("/init.rc");
         parser.set_is_system_etc_init_loaded(
                 parser.ParseConfig("/system/etc/init"));
@@ -1143,9 +1151,11 @@ int main(int argc, char** argv) {
         int epoll_timeout_ms = -1;
 
         if (!(waiting_for_prop || ServiceManager::GetInstance().IsWaitingForExec())) {
+            // 内部遍历执行每个action中携带的command对应的执行函数;
             am.ExecuteOneCommand();
         }
         if (!(waiting_for_prop || ServiceManager::GetInstance().IsWaitingForExec())) {
+            // 重启死去的进程;
             restart_processes();
 
             // If there's a process that needs restarting, wake up in time for that.

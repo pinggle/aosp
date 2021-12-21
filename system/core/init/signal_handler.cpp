@@ -48,6 +48,15 @@ static void SIGCHLD_handler(int) {
     }
 }
 
+/**
+    用于防止init进程的子进程成为僵尸进程,为了防止僵尸进程的出现,
+    系统会在子进程暂停和终止的时候发出SIGCHLD信号,而signal_handler_init就是用来
+    接收SIGCHLD信号的;
+    假设init进程的子进程zygote终止了,signal_handler_init函数内部会调用handle_signal函数,
+    经过层层的函数调用和处理,最终会找到zygote进程并移除所有的zygote进程的信息,再重启zygote服务
+    的启动脚本(比如init.zygote64.rc)中带有onrestart选项的服务,关于init.zygote64.rc后面会讲到,
+    至于zygote进程本身会在 restart_processes() 被重启;
+**/
 void signal_handler_init() {
     // Create a signalling mechanism for SIGCHLD.
     int s[2];
